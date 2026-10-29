@@ -1,0 +1,524 @@
+<title>Kanchipuram Smart Signal</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: control rail + schematic junction + fixed-vs-smart result cards + grouped bar chart + per-road table */
+:root{
+  --bg:#eef1f6; --surface:#ffffff; --surface-2:#f4f6fa; --line:#d8dee9;
+  --fg:#15202b; --muted:#5b6b7d; --faint:#8a99ab;
+  --accent:#116a3a; --accent-soft:#e3f2e9;
+  --go:#17a35b; --warn:#d9930a; --stop:#d8452f; --blue:#2c62d6;
+  --shadow:0 1px 2px rgba(20,32,43,.06),0 8px 24px rgba(20,32,43,.07);
+  --font-d:"Bricolage Grotesque",system-ui,sans-serif;
+  --font-b:"IBM Plex Sans",system-ui,sans-serif;
+  --font-m:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0d131c; --surface:#151e2b; --surface-2:#111926; --line:#283749;
+  --fg:#e7edf5; --muted:#9db0c6; --faint:#6a7d93;
+  --accent:#44c983; --accent-soft:#163327;
+  --go:#3dd384; --warn:#f0b53f; --stop:#ff6a52; --blue:#6f9bff;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0d131c; --surface:#151e2b; --surface-2:#111926; --line:#283749;
+  --fg:#e7edf5; --muted:#9db0c6; --faint:#6a7d93;
+  --accent:#44c983; --accent-soft:#163327;
+  --go:#3dd384; --warn:#f0b53f; --stop:#ff6a52; --blue:#6f9bff;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-b);line-height:1.5;margin:0}
+.wrap{max-width:1060px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
+h1,h2,h3{font-family:var(--font-d);text-wrap:balance;margin:0;font-weight:800;letter-spacing:-.01em}
+.mono{font-family:var(--font-m);font-variant-numeric:tabular-nums}
+.eyebrow{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600;font-family:var(--font-b)}
+a{color:var(--blue)}
+
+/* header */
+header{padding-block:22px 10px}
+.topline{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+h1{font-size:clamp(1.55rem,4.4vw,2.3rem);line-height:1.05}
+.sub{color:var(--muted);margin-top:8px;max-width:60ch}
+.chip{display:inline-flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:.78rem;color:var(--muted);box-shadow:var(--shadow)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--go);flex:none}
+.tbtn{font-family:var(--font-b);font-size:.78rem;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:7px 13px;cursor:pointer;box-shadow:var(--shadow)}
+.tbtn:hover{border-color:var(--accent)}
+
+/* generic card */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+section{margin-block:18px}
+.sec-head{display:flex;align-items:baseline;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.sec-head h2{font-size:1.12rem}
+.sec-head .note{color:var(--faint);font-size:.82rem}
+
+/* controls */
+.controls{padding:16px}
+.road-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.road{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:12px 13px}
+.road-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:9px}
+.road-name{font-weight:600;font-size:.92rem}
+.road-tag{font-size:.68rem;color:var(--faint);font-family:var(--font-m)}
+.vrow{display:flex;align-items:center;gap:10px}
+.vrow input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
+.vnum{font-family:var(--font-m);font-weight:600;font-size:1.05rem;min-width:2.6ch;text-align:right}
+.vcap{font-size:.72rem;color:var(--muted);margin-top:7px}
+.ctl-foot{display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin-top:15px;padding-top:14px;border-top:1px solid var(--line)}
+.limit{display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--muted)}
+.limit input[type=range]{width:96px;accent-color:var(--accent)}
+.reset{margin-left:auto;font-family:var(--font-b);font-size:.82rem;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:7px 14px;cursor:pointer}
+.reset:hover{border-color:var(--accent);color:var(--accent)}
+
+/* junction */
+.stage{display:grid;grid-template-columns:1.15fr .85fr;gap:16px}
+@media(max-width:720px){.stage{grid-template-columns:1fr}}
+.junction-card{padding:14px}
+.playbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.mode{display:inline-flex;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:3px}
+.mode button{font-family:var(--font-b);font-size:.8rem;border:0;background:transparent;color:var(--muted);padding:6px 13px;border-radius:999px;cursor:pointer}
+.mode button[aria-pressed=true]{background:var(--surface);color:var(--fg);box-shadow:var(--shadow);font-weight:600}
+.mode button[aria-pressed=true][data-mode=fixed]{color:var(--stop)}
+.mode button[aria-pressed=true][data-mode=smart]{color:var(--accent)}
+.play{font-family:var(--font-b);font-size:.82rem;font-weight:600;color:#fff;background:var(--accent);border:0;border-radius:999px;padding:8px 16px;cursor:pointer}
+.play:hover{filter:brightness(1.06)}
+.phase-label{font-size:.8rem;color:var(--muted);margin-left:auto;font-family:var(--font-m)}
+svg{display:block;width:100%;height:auto}
+.live-tally{display:flex;gap:14px;margin-top:8px;flex-wrap:wrap}
+.live-tally span{font-size:.8rem;color:var(--muted)}
+.live-tally b{font-family:var(--font-m);color:var(--fg)}
+
+/* compare cards */
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:520px){.compare{grid-template-columns:1fr}}
+.pane{padding:14px;border-radius:14px;border:1px solid var(--line)}
+.pane.fixed{background:linear-gradient(180deg,color-mix(in srgb,var(--stop) 7%,var(--surface)),var(--surface))}
+.pane.smart{background:linear-gradient(180deg,var(--accent-soft),var(--surface))}
+.pane h3{font-size:.95rem;display:flex;align-items:center;gap:8px}
+.pane.fixed h3{color:var(--stop)} .pane.smart h3{color:var(--accent)}
+.metric{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:7px 0;border-top:1px dashed var(--line)}
+.metric:first-of-type{border-top:0}
+.metric .k{font-size:.8rem;color:var(--muted)}
+.metric .v{font-family:var(--font-m);font-weight:600;font-size:1.02rem}
+.delta{font-size:.72rem;font-family:var(--font-m);padding:1px 7px;border-radius:999px;margin-left:6px}
+.delta.good{background:var(--accent-soft);color:var(--accent)}
+.delta.bad{background:color-mix(in srgb,var(--stop) 14%,transparent);color:var(--stop)}
+
+/* chart */
+.chart-card{padding:16px}
+.legend{display:flex;gap:16px;font-size:.78rem;color:var(--muted);margin-bottom:6px;flex-wrap:wrap}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+
+/* table */
+.tbl-card{padding:4px 2px;overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.85rem;min-width:520px}
+th,td{padding:9px 12px;text-align:center;border-bottom:1px solid var(--line)}
+th{font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:600}
+td:first-child,th:first-child{text-align:left}
+td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums}
+tr.tot td{border-top:2px solid var(--line);font-weight:700;color:var(--accent)}
+tr.tot td:first-child{color:var(--fg)}
+
+footer{color:var(--faint);font-size:.78rem;padding:20px 0 34px;border-top:1px solid var(--line);margin-top:18px}
+footer b{color:var(--muted);font-weight:600}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+.car{transition:height .12s linear,y .12s linear}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="topline">
+    <div>
+      <div class="eyebrow">HCL Jigsaw · Grade 8 · Traffic Flow Optimizer</div>
+      <h1>Kanchipuram Smart Signal</h1>
+      <p class="sub">Set how many vehicles wait on each road, then compare the old <b>fixed timer</b> with our <b>smart signal</b> that gives green time based on real demand. It starts with the counts our team observed at the junction.</p>
+    </div>
+    <button class="tbtn" id="themeBtn" type="button">◑ Theme</button>
+  </div>
+  <div style="margin-top:12px"><span class="chip"><span class="dot"></span>Kanchipuram Main signal, next to the bus stand · evening peak</span></div>
+</header>
+
+<!-- CONTROLS -->
+<section>
+  <div class="card controls">
+    <div class="sec-head"><h2>1 · Set the traffic</h2><span class="note">Drag a slider or type a number — everything below updates instantly.</span></div>
+    <div class="road-grid" id="roadGrid"></div>
+    <div class="ctl-foot">
+      <label class="limit">Min green <input type="range" id="gmin" min="5" max="20" step="1" value="10"><b class="mono" id="gminV">10s</b></label>
+      <span class="limit" style="color:var(--faint)">No maximum — a busy road gets all the green it needs.</span>
+      <button class="reset" id="resetBtn" type="button">↺ Reset to our real counts</button>
+    </div>
+  </div>
+</section>
+
+<!-- STAGE: junction + compare -->
+<section>
+  <div class="stage">
+    <div class="card junction-card">
+      <div class="playbar">
+        <span class="mono" style="font-size:.8rem;color:var(--muted)">Signal:</span>
+        <span class="mode" role="group" aria-label="Signal mode">
+          <button type="button" data-mode="fixed" aria-pressed="false">Fixed timer</button>
+          <button type="button" data-mode="smart" aria-pressed="true">Smart signal</button>
+        </span>
+        <button class="play" id="playBtn" type="button">▶ Play one cycle</button>
+        <span class="phase-label" id="phaseLabel">ready</span>
+      </div>
+      <svg id="junction" viewBox="0 0 400 300" role="img" aria-label="Schematic of the 4-way junction with live queues"></svg>
+      <div class="live-tally">
+        <span>Cleared this cycle: <b id="tClear">—</b></span>
+        <span>Left waiting: <b id="tLeft">—</b></span>
+        <span>Cycle length: <b id="tCycle">—</b></span>
+      </div>
+    </div>
+
+    <div class="card" style="padding:14px">
+      <div class="sec-head" style="margin-bottom:10px"><h2>2 · Fixed vs Smart</h2></div>
+      <div class="compare">
+        <div class="pane fixed">
+          <h3>● Fixed timer</h3>
+          <div class="metric"><span class="k">Cleared / hour</span><span class="v" id="f_clr">—</span></div>
+          <div class="metric"><span class="k">Left behind / cycle</span><span class="v" id="f_left">—</span></div>
+          <div class="metric"><span class="k">Average wait</span><span class="v" id="f_wait">—</span></div>
+          <div class="metric"><span class="k">Green wasted / cycle</span><span class="v" id="f_idle">—</span></div>
+          <div class="metric"><span class="k">Cycle length</span><span class="v" id="f_cyc">—</span></div>
+        </div>
+        <div class="pane smart">
+          <h3>● Smart signal</h3>
+          <div class="metric"><span class="k">Cleared / hour</span><span class="v" id="s_clr">—</span></div>
+          <div class="metric"><span class="k">Left behind / cycle</span><span class="v" id="s_left">—</span></div>
+          <div class="metric"><span class="k">Average wait</span><span class="v" id="s_wait">—</span></div>
+          <div class="metric"><span class="k">Green wasted / cycle</span><span class="v" id="s_idle">—</span></div>
+          <div class="metric"><span class="k">Cycle length</span><span class="v" id="s_cyc">—</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CHART -->
+<section>
+  <div class="card chart-card">
+    <div class="sec-head"><h2>3 · Green time given to each road</h2><span class="note">The fixed timer is the same every day; the smart signal follows demand.</span></div>
+    <div class="legend"><span><i style="background:var(--stop)"></i>Fixed timer</span><span><i style="background:var(--accent)"></i>Smart signal</span><span><i style="background:var(--faint)"></i>Green it needs (vehicles × move time)</span></div>
+    <svg id="chart" viewBox="0 0 680 260" role="img" aria-label="Bar chart comparing fixed and smart green times per road"></svg>
+  </div>
+</section>
+
+<!-- TABLE -->
+<section>
+  <div class="sec-head"><h2>4 · The numbers</h2><span class="note">Move time = how long one vehicle needs to pull away (from our observation).</span></div>
+  <div class="card tbl-card">
+    <table id="dataTbl">
+      <thead><tr>
+        <th>Road</th><th>Vehicles</th><th>Move time (s/veh)</th>
+        <th>Fixed green</th><th>Smart green</th><th>Cleared (smart)</th><th>Left (fixed)</th>
+      </tr></thead>
+      <tbody id="tblBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  <b>How it works:</b> Smart green = vehicles × move time, kept at or above the minimum green (10 s), with no upper limit so a busy road gets all the green it needs to clear. Both signals run the <b>same traffic</b> so the test is fair. Average wait is estimated assuming vehicles arrive evenly through the cycle, plus extra for any left waiting. Fuel and pollution savings are not shown here because they need extra assumptions.<br><br>
+  <b>Data:</b> counts first observed by our team at the Kanchipuram Main signal (next to the bus stand) during the evening peak, from a safe place off the road. A model for the HCL Jigsaw Grade 8 project — not a live traffic feed.
+</footer>
+</div>
+
+<script>
+"use strict";
+// ---- real observed basis ----
+const ROADS=[
+  {name:"Annai Indira Gandhi Salai",tag:"North arm",gfix:35,h:0.667,pos:"top"},
+  {name:"Kamarajar Salai",tag:"East arm",gfix:41,h:0.745,pos:"right"},
+  {name:"Nellukkara Street",tag:"South arm",gfix:25,h:0.512,pos:"bottom"},
+  {name:"Ulagalandhar Mada Street",tag:"West arm",gfix:20,h:0.560,pos:"left"}
+];
+const DEFAULTS=[48,65,43,25];
+const AMBER=12; // total amber/clearance per cycle (s)
+let N=DEFAULTS.slice();
+let GMIN=10;
+let mode="smart";
+
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const r0=x=>Math.round(x);
+const r1=x=>Math.round(x*10)/10;
+
+function smartGreen(i){ return Math.max(N[i]*ROADS[i].h, GMIN); }
+function compute(){
+  const gf=ROADS.map(r=>r.gfix), gs=ROADS.map((_,i)=>smartGreen(i));
+  const need=ROADS.map((r,i)=>N[i]*r.h);
+  const clearedF=ROADS.map((r,i)=>Math.min(N[i], gf[i]/r.h));
+  const clearedS=ROADS.map((r,i)=>Math.min(N[i], gs[i]/r.h));
+  const leftF=ROADS.map((r,i)=>Math.max(0,N[i]-clearedF[i]));
+  const leftS=ROADS.map((r,i)=>Math.max(0,N[i]-clearedS[i]));
+  const idleF=ROADS.map((r,i)=>Math.max(0,gf[i]-N[i]*r.h));
+  const idleS=ROADS.map((r,i)=>Math.max(0,gs[i]-N[i]*r.h));
+  const cycF=gf.reduce((a,b)=>a+b,0)+AMBER, cycS=gs.reduce((a,b)=>a+b,0)+AMBER;
+  const totN=N.reduce((a,b)=>a+b,0)||1;
+  const cphF=3600/cycF, cphS=3600/cycS;
+  const sum=a=>a.reduce((x,y)=>x+y,0);
+  const waitF=avgWait(gf,cycF,leftF), waitS=avgWait(gs,cycS,leftS);
+  return {gf,gs,need,clearedF,clearedS,leftF,leftS,idleF,idleS,cycF,cycS,
+    clrF:sum(clearedF)*cphF, clrS:sum(clearedS)*cphS,
+    leftFtot:sum(leftF), leftStot:sum(leftS), idleFtot:sum(idleF), idleStot:sum(idleS),
+    waitF,waitS,totN};
+}
+function avgWait(greens,cyc,left){
+  const totN=N.reduce((a,b)=>a+b,0)||1;
+  let base=0;
+  for(let i=0;i<4;i++){ const R=Math.max(0,cyc-greens[i]); base+=N[i]*(R*R)/(2*cyc); }
+  const strand=left.reduce((a,b)=>a+b,0)*cyc/totN;
+  return base/totN+strand;
+}
+
+// ---- build control cards ----
+const roadGrid=document.getElementById("roadGrid");
+ROADS.forEach((r,i)=>{
+  const el=document.createElement("div"); el.className="road";
+  el.innerHTML=`<div class="road-top"><span class="road-name">${r.name}</span><span class="road-tag">${r.tag}</span></div>
+    <div class="vrow"><input type="range" id="r${i}" min="0" max="120" step="1" value="${N[i]}" aria-label="Vehicles waiting on ${r.name}"><span class="vnum mono" id="rv${i}">${N[i]}</span></div>
+    <div class="vcap">vehicles waiting · move time ${r.h.toFixed(2)} s/veh</div>`;
+  roadGrid.appendChild(el);
+});
+ROADS.forEach((r,i)=>{
+  const s=document.getElementById("r"+i);
+  s.addEventListener("input",()=>{ N[i]=+s.value; document.getElementById("rv"+i).textContent=s.value; render(); });
+});
+const gminS=document.getElementById("gmin");
+gminS.addEventListener("input",()=>{GMIN=+gminS.value; document.getElementById("gminV").textContent=GMIN+"s"; render();});
+document.getElementById("resetBtn").addEventListener("click",()=>{
+  N=DEFAULTS.slice(); GMIN=10; gminS.value=10;
+  document.getElementById("gminV").textContent="10s";
+  ROADS.forEach((_,i)=>{document.getElementById("r"+i).value=N[i]; document.getElementById("rv"+i).textContent=N[i];});
+  stopAnim(); render();
+});
+
+// mode toggle
+document.querySelectorAll(".mode button").forEach(b=>{
+  b.addEventListener("click",()=>{
+    mode=b.dataset.mode;
+    document.querySelectorAll(".mode button").forEach(x=>x.setAttribute("aria-pressed",x===b));
+    stopAnim(); render();
+  });
+});
+
+// ---- junction drawing ----
+const SVGNS="http://www.w3.org/2000/svg";
+const jsvg=document.getElementById("junction");
+const ARM={top:{x:170,y:0,w:60,h:110,pos:"top"},
+           bottom:{x:170,y:190,w:60,h:110,pos:"bottom"},
+           left:{x:0,y:120,w:150,h:60,pos:"left"},
+           right:{x:250,y:120,w:150,h:60,pos:"right"}};
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+
+const QCAP=70; // vehicles that visually fill an arm
+function drawJunction(state){
+  // state: {queue:[4], greenIdx:int or -1}
+  jsvg.innerHTML="";
+  const road=css("--surface-2"), line=css("--line"), fg=css("--fg"), muted=css("--muted");
+  Object.values(ARM).forEach(a=>jsvg.appendChild(rect(a.x,a.y,a.w,a.h,road,line)));
+  jsvg.appendChild(rect(150,120,100,60,road,line)); // centre box
+  ROADS.forEach((r,i)=>drawArm(ARM[r.pos],i,state,fg,muted));
+}
+function rect(x,y,w,h,fill,stroke,rx){const e=document.createElementNS(SVGNS,"rect");e.setAttribute("x",x);e.setAttribute("y",y);e.setAttribute("width",Math.max(0,w));e.setAttribute("height",Math.max(0,h));e.setAttribute("fill",fill);if(stroke){e.setAttribute("stroke",stroke);e.setAttribute("stroke-width","1");}e.setAttribute("rx",rx==null?3:rx);return e;}
+function txt(x,y,s,fill,size,anchor,weight){const e=document.createElementNS(SVGNS,"text");e.setAttribute("x",x);e.setAttribute("y",y);e.setAttribute("fill",fill);e.setAttribute("font-size",size||11);e.setAttribute("text-anchor",anchor||"middle");e.setAttribute("font-family","IBM Plex Sans,sans-serif");if(weight)e.setAttribute("font-weight",weight);e.textContent=s;return e;}
+function circle(x,y,rr,fill){const e=document.createElementNS(SVGNS,"circle");e.setAttribute("cx",x);e.setAttribute("cy",y);e.setAttribute("r",rr);e.setAttribute("fill",fill);return e;}
+
+function drawArm(a,i,state,fg,muted){
+  const q=state.queue[i];
+  const isGreen=state.greenIdx===i;
+  const barFill=isGreen?css("--go"):css("--blue");
+  const sigCol=isGreen?css("--go"):css("--stop");
+  const frac=clamp(q/QCAP,0,1);
+  const T=26; // queue bar thickness
+  const short=ROADS[i].name.split(" ")[0];
+  const gt=mode==="fixed"?ROADS[i].gfix:r0(smartGreen(i));
+  const label=`${short} · ${r0(q)} veh · ${gt}s`;
+  if(a.pos==="top"){
+    const inner=112, Lmax=inner-8, L=frac*Lmax, cx=a.x+a.w/2;
+    jsvg.appendChild(rect(cx-T/2, inner-L, T, L, barFill,null,5));
+    jsvg.appendChild(rect(a.x+6, inner, a.w-12, 4, sigCol,null,2)); // stop line
+    jsvg.appendChild(txt(cx, 12, label, fg,10,"middle","600"));
+  } else if(a.pos==="bottom"){
+    const inner=188, Lmax=292-inner, L=frac*Lmax, cx=a.x+a.w/2;
+    jsvg.appendChild(rect(cx-T/2, inner, T, L, barFill,null,5));
+    jsvg.appendChild(rect(a.x+6, inner-4, a.w-12, 4, sigCol,null,2));
+    jsvg.appendChild(txt(cx, 298, label, fg,10,"middle","600"));
+  } else if(a.pos==="left"){
+    const inner=148, Lmax=inner-8, L=frac*Lmax, cy=a.y+a.h/2;
+    jsvg.appendChild(rect(inner-L, cy-T/2, L, T, barFill,null,5));
+    jsvg.appendChild(rect(inner, a.y+6, 4, a.h-12, sigCol,null,2));
+    jsvg.appendChild(txt(6, a.y-6, label, fg,10,"start","600"));
+  } else {
+    const inner=252, Lmax=392-inner, L=frac*Lmax, cy=a.y+a.h/2;
+    jsvg.appendChild(rect(inner, cy-T/2, L, T, barFill,null,5));
+    jsvg.appendChild(rect(inner-4, a.y+6, 4, a.h-12, sigCol,null,2));
+    jsvg.appendChild(txt(394, a.y-6, label, fg,10,"end","600"));
+  }
+}
+
+// ---- chart ----
+const chart=document.getElementById("chart");
+function drawChart(c){
+  chart.innerHTML="";
+  const W=680,H=260,padL=40,padR=14,padT=12,padB=54;
+  const plotW=W-padL-padR, plotH=H-padT-padB;
+  const maxV=Math.max(55, Math.ceil(Math.max(...c.gf,...c.gs,...c.need)/10)*10);
+  const fg=css("--fg"),muted=css("--muted"),line=css("--line");
+  const y=v=>padT+plotH-(v/maxV)*plotH;
+  // gridlines
+  for(let t=0;t<=maxV;t+=10){
+    const gy=y(t);
+    const l=document.createElementNS(SVGNS,"line");l.setAttribute("x1",padL);l.setAttribute("x2",W-padR);l.setAttribute("y1",gy);l.setAttribute("y2",gy);l.setAttribute("stroke",line);l.setAttribute("stroke-width",t===0?1.4:1);chart.appendChild(l);
+    chart.appendChild(txt(padL-7,gy+3,t,muted,10,"end"));
+  }
+  const groupW=plotW/4;
+  ROADS.forEach((r,i)=>{
+    const gx=padL+i*groupW+groupW/2;
+    const bw=24;
+    // need marker (faint full bar behind)
+    bar(gx-bw-3, c.need[i], bw, css("--faint"), 0.35, y, padT, plotH);
+    bar(gx-bw-3, c.gf[i], bw, css("--stop"),1, y, padT, plotH);
+    bar(gx+3, c.gs[i], bw, css("--accent"),1, y, padT, plotH);
+    chart.appendChild(txt(gx-bw/2-3, y(c.gf[i])-5, r0(c.gf[i]), css("--stop"),10,"middle","600"));
+    chart.appendChild(txt(gx+bw/2+3, y(c.gs[i])-5, r0(c.gs[i]), css("--accent"),10,"middle","600"));
+    // road short name, wrapped
+    const nm=r.name.split(" ");
+    chart.appendChild(txt(gx, H-padB+18, nm[0], fg,10.5,"middle","600"));
+    chart.appendChild(txt(gx, H-padB+31, nm.slice(1).join(" "), muted,9,"middle"));
+  });
+  chart.appendChild(txt(padL-30,padT+plotH/2,"sec",muted,10,"middle"));
+}
+function bar(x,v,w,fill,op,y,padT,plotH){
+  const gy=y(v); const h=padT+plotH-gy;
+  const e=rect(x,gy,w,Math.max(0,h),fill,null); e.setAttribute("opacity",op); chart.appendChild(e);
+}
+
+// ---- render everything ----
+function fmt(n){return n.toLocaleString("en-IN");}
+function setDelta(id,better){const el=document.getElementById(id);if(!el)return;}
+function render(){
+  const c=compute();
+  if(!animating) drawJunction({queue:N.slice(), greenIdx:-1});
+  drawChart(c);
+  // compare panes
+  document.getElementById("f_clr").textContent=fmt(r0(c.clrF));
+  document.getElementById("s_clr").textContent=fmt(r0(c.clrS));
+  document.getElementById("f_left").textContent=r0(c.leftFtot);
+  document.getElementById("s_left").textContent=r1(c.leftStot);
+  document.getElementById("f_wait").textContent=r0(c.waitF)+"s";
+  document.getElementById("s_wait").textContent=r0(c.waitS)+"s";
+  document.getElementById("f_idle").textContent=r0(c.idleFtot)+"s";
+  document.getElementById("s_idle").textContent=r1(c.idleStot)+"s";
+  document.getElementById("f_cyc").textContent=r0(c.cycF)+"s";
+  document.getElementById("s_cyc").textContent=r0(c.cycS)+"s";
+  addDelta("s_clr", c.clrS-c.clrF>=0, "+"+fmt(r0(c.clrS-c.clrF))+"/hr");
+  addDelta("s_left", c.leftStot<=c.leftFtot, "−"+r0(c.leftFtot-c.leftStot));
+  addDelta("s_wait", c.waitS<=c.waitF, (c.waitF>0?"−"+r0((1-c.waitS/c.waitF)*100)+"%":""));
+  addDelta("s_idle", c.idleStot<=c.idleFtot, "−"+r0(c.idleFtot-c.idleStot)+"s");
+  // table
+  const tb=document.getElementById("tblBody"); tb.innerHTML="";
+  ROADS.forEach((r,i)=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${r.name}</td><td class="num">${r0(N[i])}</td><td class="num">${r.h.toFixed(2)}</td>
+      <td class="num">${r.gfix}s</td><td class="num">${r0(smartGreen(i))}s</td>
+      <td class="num">${r0(c.clearedS[i])}</td><td class="num">${r1(c.leftF[i])}</td>`;
+    tb.appendChild(tr);
+  });
+  const tot=document.createElement("tr"); tot.className="tot";
+  tot.innerHTML=`<td>Total (+${AMBER}s amber = cycle)</td><td class="num">${r0(c.totN)}</td><td class="num">—</td>
+    <td class="num">${r0(c.cycF)}s</td><td class="num">${r0(c.cycS)}s</td><td class="num">${r0(c.clearedS.reduce((a,b)=>a+b,0))}</td><td class="num">${r0(c.leftFtot)}</td>`;
+  tb.appendChild(tot);
+  // live tally (static when not animating)
+  if(!animating){
+    const g = mode==="fixed"?c.clearedF:c.clearedS;
+    const l = mode==="fixed"?c.leftF:c.leftS;
+    document.getElementById("tClear").textContent=r0(g.reduce((a,b)=>a+b,0))+" veh";
+    document.getElementById("tLeft").textContent=r1(l.reduce((a,b)=>a+b,0))+" veh";
+    document.getElementById("tCycle").textContent=(mode==="fixed"?r0(c.cycF):r0(c.cycS))+"s";
+    document.getElementById("phaseLabel").textContent=mode==="fixed"?"fixed timer":"smart signal";
+  }
+}
+function addDelta(id,good,label){
+  const el=document.getElementById(id); if(!el||!label)return;
+  let d=el.querySelector(".delta"); if(!d){d=document.createElement("span");d.className="delta";el.appendChild(d);}
+  d.textContent=label; d.className="delta "+(good?"good":"bad");
+}
+
+// ---- animation of one cycle ----
+let animating=false, rafId=null;
+function stopAnim(){ animating=false; if(rafId)cancelAnimationFrame(rafId); rafId=null; document.getElementById("playBtn").textContent="▶ Play one cycle"; }
+function playCycle(){
+  if(animating){ stopAnim(); render(); return; }
+  const c=compute();
+  const greens = mode==="fixed"?c.gf:c.gs;
+  const order=[0,1,2,3];
+  const totalGreen=greens.reduce((a,b)=>a+b,0);
+  const reduce = matchMedia("(prefers-reduced-motion:reduce)").matches;
+  const DUR = reduce?0:Math.min(9000, 1400+totalGreen*55); // ms for whole cycle
+  const startQ=N.slice(); const queue=N.slice();
+  let cleared=0;
+  animating=true; document.getElementById("playBtn").textContent="■ Stop";
+  if(reduce){ // jump to final
+    let left=0; order.forEach(i=>{const can=greens[i]/ROADS[i].h; const c2=Math.min(startQ[i],can); queue[i]=startQ[i]-c2; cleared+=c2; left+=queue[i];});
+    drawJunction({queue,greenIdx:-1});
+    document.getElementById("tClear").textContent=r0(cleared)+" veh";
+    document.getElementById("tLeft").textContent=r1(left)+" veh";
+    document.getElementById("tCycle").textContent=r0(totalGreen+AMBER)+"s";
+    document.getElementById("phaseLabel").textContent="cycle done";
+    animating=false; document.getElementById("playBtn").textContent="▶ Play one cycle"; return;
+  }
+  const slices=order.map(i=>({i,dur:(greens[i]/totalGreen)*DUR}));
+  let t0=null, acc=0, si=0, sliceStart=0;
+  function frame(ts){
+    if(!animating)return;
+    if(t0===null){t0=ts;sliceStart=ts;}
+    const cur=slices[si]; const i=cur.i;
+    const p=Math.min(1,(ts-sliceStart)/cur.dur);
+    const canClear=greens[i]/ROADS[i].h;
+    const willClear=Math.min(startQ[i],canClear);
+    queue[i]=startQ[i]-willClear*p;
+    drawJunction({queue:queue.slice(),greenIdx:i});
+    const doneClear = order.reduce((s,k)=> s + (k===i? willClear*p : (k<si||slices.findIndex(z=>z.i===k)<si? Math.min(startQ[k],greens[k]/ROADS[k].h):0)),0);
+    const liveClear = slices.slice(0,si).reduce((s,z)=>s+Math.min(startQ[z.i],greens[z.i]/ROADS[z.i].h),0) + willClear*p;
+    const liveLeft = queue.reduce((a,b)=>a+b,0);
+    document.getElementById("tClear").textContent=r0(liveClear)+" veh";
+    document.getElementById("tLeft").textContent=r1(liveLeft)+" veh";
+    document.getElementById("tCycle").textContent=r0(totalGreen+AMBER)+"s";
+    document.getElementById("phaseLabel").textContent=`phase ${si+1}/4 · ${ROADS[i].name.split(" ")[0]} green ${r0(greens[i])}s`;
+    if(p>=1){ si++; sliceStart=ts; if(si>=slices.length){ finishAnim(queue); return; } }
+    rafId=requestAnimationFrame(frame);
+  }
+  rafId=requestAnimationFrame(frame);
+}
+function finishAnim(queue){
+  animating=false; if(rafId)cancelAnimationFrame(rafId); rafId=null;
+  document.getElementById("playBtn").textContent="▶ Play one cycle";
+  drawJunction({queue,greenIdx:-1});
+  document.getElementById("phaseLabel").textContent="cycle done ✓";
+  const left=queue.reduce((a,b)=>a+b,0);
+  document.getElementById("tLeft").textContent=r1(left)+" veh";
+}
+document.getElementById("playBtn").addEventListener("click",playCycle);
+
+// theme toggle
+const themeBtn=document.getElementById("themeBtn");
+themeBtn.addEventListener("click",()=>{
+  const cur=document.documentElement.getAttribute("data-theme");
+  const sysDark=matchMedia("(prefers-color-scheme:dark)").matches;
+  const next = cur? (cur==="dark"?"light":"dark") : (sysDark?"light":"dark");
+  document.documentElement.setAttribute("data-theme",next);
+  try{localStorage.setItem("kcp-theme",next);}catch(e){}
+  if(!animating) drawJunction({queue:N.slice(),greenIdx:-1}); drawChart(compute());
+});
+try{const sv=localStorage.getItem("kcp-theme"); if(sv)document.documentElement.setAttribute("data-theme",sv);}catch(e){}
+
+render();
+window.addEventListener("resize",()=>{ if(!animating){drawJunction({queue:N.slice(),greenIdx:-1});} drawChart(compute()); });
+</script>
